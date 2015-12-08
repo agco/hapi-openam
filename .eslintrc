@@ -1,0 +1,13 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "mocha": true
+  },
+  "extends": "defaults/configurations/walmart/es6-node",
+  "rules": {
+    "quotes": [2, "single"],
+    "strict": [0, "global"],
+    "max-params": [2, 4]
+  }
+}
