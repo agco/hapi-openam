@@ -1,0 +1,31 @@
+{
+  "name": "hapi-openam",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agco/hapi-openam.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/agco/hapi-openam/issues"
+  },
+  "homepage": "https://github.com/agco/hapi-openam",
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "hapi": "^11.1.2",
+    "hapi-auth-basic": "^4.1.0",
+    "hapi-auth-bearer-token": "^3.1.1",
+    "inject-then": "^2.0.3",
+    "istanbul": "^0.4.1",
+    "mocha": "^2.3.4"
+  }
+}
