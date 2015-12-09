@@ -8,6 +8,7 @@
   "rules": {
     "quotes": [2, "single"],
     "strict": [0, "global"],
-    "max-params": [2, 4]
+    "max-params": [2, 4],
+    "camelcase": [1]
   }
 }

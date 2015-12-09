@@ -13,7 +13,6 @@ hapi-auth-bearer-token
 server = new Hapi.Server();
 server.connection({ port: 5050});
 server.register([
-  {register: require('inject-then')},
   {register: require('hapi-auth-basic')},
   {register: require('hapi-auth-bearer-token')}
 ], (err) => {
