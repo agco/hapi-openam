@@ -17,37 +17,58 @@ const oauth2Key = (s) => {
   return `${s}-oauth2`;
 };
 
+const redisDefaults = {
+  retry_strategy: options => {
+    const maxRetries = 20;
+    const retryTimeout = 1000 * 60 * 60;
+
+    if (options.total_retry_time > retryTimeout) {
+      return new Error('Retry time exhausted', options.error);
+    }
+    if (options.times_connected > maxRetries) {
+      return new Error('Max retries exceeded', options.error);
+    }
+    return Math.max(options.attempt * 100, 3000);
+  }
+};
+
 module.exports = {
   basicKey,
   oauth2Key,
   basicStrategyValidate: (options) => {
     debug('created basic strategy validation', options);
+    const redisOptions = Object.assign(options.redis, redisDefaults);
+    const redisClient = redis.createClient(redisOptions);
+    const url = options.openAMBaseURL;
+    const infoUrl = options.openAMInfoURL;
+    const scope = options.scope.join(' ');
+    const clientId = options.client_id;
+    const clientSecret = options.client_secret;
+
     return (request, username, password, done) => {
       debug(`openam got auth request for user: ${username}`);
-      const redisClient = redis.createClient(options.redis);
       const header = `${username}:${password}`;
       const hashedHeader = basicKey(md5(header));
-      const URL = options.openAMBaseURL;
-      const infoURL = options.openAMInfoURL;
-      const scopes = options.scope.join(' ');
 
       const postToken = () => {
-        return $http.post(URL, {
-          form: {
-            client_id: options.client_id,
-            client_secret: options.client_secret,
-            grant_type: 'password',
-            username,
-            password,
-            scope: scopes
-          },
-          error: true,
-          json: true
-        });
+        return $http
+          .post(url, {
+            form: {
+              client_id: clientId,
+              client_secret: clientSecret,
+              grant_type: 'password',
+              username,
+              password,
+              scope
+            },
+            error: true,
+            json: true
+          });
       };
 
       const getTokenInfo = (tokenBody) => {
-        return $http.get(`${infoURL}?access_token=${tokenBody.access_token}`, { json: true })
+        return $http
+          .get(`${infoUrl}?access_token=${tokenBody.access_token}`, { json: true })
           .spread((res, infoBody) => {
             const user = { sub: infoBody.agcoUUID, token: infoBody };
             infoBody.sub = infoBody.agcoUUID;
@@ -98,13 +119,14 @@ module.exports = {
   },
   bearerTokenStrategyValidate: (options) => {
     debug('created bearer token strategy validation', options);
-    return (token, done) => {
-      const redisClient = redis.createClient(options.redis);
-      const hashedToken = oauth2Key(md5(token));
-      const infoURL = options.openAMInfoURL;
+    const redisOptions = Object.assign(options.redis, redisDefaults);
+    const redisClient = redis.createClient(redisOptions);
+    const infoUrl = options.openAMInfoURL;
 
+    return (token, done) => {
+      const hashedToken = oauth2Key(md5(token));
       const getTokenInfo = () => {
-        return $http.get(`${infoURL}?access_token=${token}`, { json: true, error: false });
+        return $http.get(`${infoUrl}?access_token=${token}`, { json: true, error: false });
       };
 
       const checkResponse = (res, body) => {
