@@ -1,13 +1,13 @@
 'use strict';
 
-const redis = require('then-redis');
+const redis = require('redis');
+const Promise = require('bluebird');
 const md5 = require('MD5');
 const $http = require('http-as-promised');
 const debug = require('debug')('openam');
 
-const getRedis = (r, key) => {
-  return r.get(key);
-};
+Promise.promisifyAll(redis.RedisClient.prototype);
+Promise.promisifyAll(redis.Multi.prototype);
 
 const basicKey = (s) => {
   return `${s}-basic`;
@@ -24,7 +24,7 @@ module.exports = {
     debug('created basic strategy validation', options);
     return (request, username, password, done) => {
       debug(`openam got auth request for user: ${username}`);
-      const db = redis.createClient(options.redis);
+      const redisClient = redis.createClient(options.redis);
       const header = `${username}:${password}`;
       const hashedHeader = basicKey(md5(header));
       const URL = options.openAMBaseURL;
@@ -47,9 +47,9 @@ module.exports = {
       };
 
       const getTokenInfo = (tokenBody) => {
-        return $http.get(`${infoURL}?access_token=${tokenBody.access_token}`, {json: true})
+        return $http.get(`${infoURL}?access_token=${tokenBody.access_token}`, { json: true })
           .spread((res, infoBody) => {
-            const user = {sub: infoBody.agcoUUID, token: infoBody};
+            const user = { sub: infoBody.agcoUUID, token: infoBody };
             infoBody.sub = infoBody.agcoUUID;
             debug(`got token info for: ${hashedHeader}`);
             return [hashedHeader, user, tokenBody.expires_in];
@@ -58,13 +58,15 @@ module.exports = {
 
       const cacheToken = (hHeader, tokenInfo, expiry) => {
         debug('cache token args', hHeader, tokenInfo, expiry);
-        db.multi();
-        db.set(hHeader, JSON.stringify(tokenInfo));
-        db.expire(hHeader, expiry);
-        return db.exec().then(() => {
-          debug('cached token');
-          return tokenInfo;
-        });
+        return redisClient
+          .multi()
+          .set(hHeader, JSON.stringify(tokenInfo))
+          .expire(hHeader, expiry)
+          .execAsync()
+          .then(() => {
+            debug('cached token');
+            return tokenInfo;
+          });
       };
 
       const getandCacheTokenInfo = (res, body) => {
@@ -80,7 +82,8 @@ module.exports = {
         return done(null, false);
       };
 
-      return getRedis(db, hashedHeader)
+      return redisClient
+        .getAsync(hashedHeader)
         .then((tokenInfo) => {
           if (tokenInfo) {
             debug(`got tokeninfo from cache for hash: ${hashedHeader}`, tokenInfo);
@@ -96,7 +99,7 @@ module.exports = {
   bearerTokenStrategyValidate: (options) => {
     debug('created bearer token strategy validation', options);
     return (token, done) => {
-      const db = redis.createClient(options.redis);
+      const redisClient = redis.createClient(options.redis);
       const hashedToken = oauth2Key(md5(token));
       const infoURL = options.openAMInfoURL;
 
@@ -113,16 +116,20 @@ module.exports = {
       };
 
       const storeUser = (tokenInfo) => {
-        const user = {sub: tokenInfo.agcoUUID};
+        const user = { sub: tokenInfo.agcoUUID };
         user.token = tokenInfo;
-        db.multi();
-        db.set(hashedToken, JSON.stringify(user));
-        db.expire(hashedToken, tokenInfo.expires_in);
-        return db.exec().then(() => { return user; });
+        return redisClient
+          .multi()
+          .set(hashedToken, JSON.stringify(user))
+          .expire(hashedToken, tokenInfo.expires_in)
+          .execAsync()
+          .then(() => user);
       };
 
       const validateReturn = (tokenInfo) => {
-        if (!tokenInfo) { return done(null, false); }
+        if (!tokenInfo) {
+          return done(null, false);
+        }
         return storeUser(tokenInfo)
           .then(validate);
       };
@@ -131,7 +138,8 @@ module.exports = {
         return done(err, false);
       };
 
-      return getRedis(db, hashedToken)
+      return redisClient
+        .getAsync(hashedToken)
         .then((value) => {
           if (value) {
             return done(null, true, JSON.parse(value));
