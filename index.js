@@ -18,7 +18,7 @@ const oauth2Key = (s) => {
 };
 
 const redisDefaults = {
-  retry_strategy: options => {
+  retry_strategy: (options) => {
     const maxRetries = 20;
     const retryTimeout = 1000 * 60 * 60;
 
