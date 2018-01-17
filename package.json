@@ -10,8 +10,8 @@
     "node": ">=7.6"
   },
   "scripts": {
-    "test": "eslint --ext .js . && mocha -t 5000",
-    "lint": "eslint --ext .js ."
+    "test": "./node_modules/.bin/mocha ./test",
+    "lint": "./node_modules/.bin/eslint ."
   },
   "repository": {
     "type": "git",
@@ -33,13 +33,15 @@
   },
   "devDependencies": {
     "chai": "4.1.2",
+    "dirty-chai": "2.0.1",
     "eslint": "4.15.0",
-    "eslint-config-defaults": "9.0.0",
-    "eslint-plugin-filenames": "1.2.0",
+    "eslint-config-airbnb-base": "12.1.0",
+    "eslint-plugin-import": "2.8.0",
+    "eslint-plugin-json": "1.2.0",
+    "eslint-plugin-perf-standard": "1.0.3",
     "hapi": "17.2.0",
     "hapi-auth-basic": "5.0.0",
     "hapi-auth-bearer-token": "6.0.1",
-    "istanbul": "0.4.5",
     "mocha": "4.1.0",
     "nock": "9.1.6"
   }

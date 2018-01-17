@@ -49,7 +49,3 @@ jspm_packages
 # Mocha JSON
 mocha.json
 
-# local config files
-config/local*.js
-config/local*.json
-config/local*.yml

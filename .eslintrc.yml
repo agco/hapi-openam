@@ -4,6 +4,8 @@ plugins:
   - import
   - perf-standard
   - json
+env:
+  mocha: true
 
 rules:
   perf-standard/no-instanceof-guard: 2
